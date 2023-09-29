@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Model for Professor
+model Professor {
+  id        String    @id @default(uuid())
+  name      String
+  cref      String
+  email     String    @unique
+  password  String
+  role      String    @default("admin")
+  createdAt DateTime  @default(now())
+  students  Student[]
+
+  @@map("professor")
+}
+
+// Model for Aluno
+model Student {
+  id                  String    @id @default(uuid())
+  name                String
+  email               String    @unique
+  tel                 String?
+  password            String
+  role                String    @default("user")
+  gender              String?
+  age                 Int
+  height              Float
+  weight              Float?
+  imc                 Float?
+  training_level      Int?
+  conditioning_level  Int?
+  weekly_Frequency    Int?
+  goal                String?
+  protocol_start_date DateTime?
+  protocol_end_date   DateTime?
+  observations        String?
+  professor           Professor? @relation(fields: [professorId], references: [id])
+  professorId         String?
+  workouts            Workout[]
+
+  @@map("student")
+}
+
+// Model for Treino
+model Workout {
+  id        String     @id @default(uuid())
+  type      String // A, B, C, D, E
+  week_day  Int // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+  student   Student    @relation(fields: [studentId], references: [id])
+  studentId String
+  exercises Exercise[]
+
+  @@map("workout")
+}
+
+// Model for Exercicio
+model Exercise {
+  id            String  @id @default(uuid())
+  name_exercise String
+  repetitions   String
+  interval      String
+  method        String?
+  load          Float
+  cadence       String
+  observation   String?
+  workout       Workout @relation(fields: [workoutId], references: [id])
+  workoutId     String
+
+  @@map("exercise")
+}
