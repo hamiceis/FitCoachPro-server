@@ -19,26 +19,24 @@ route.post("/login", async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Email ou passoword invalidos" });
     }
 
-    const user = await prisma.student.findUnique({
-      where: {
-        email,
-      },
-    });
-
-    if (!user) {
+    const isExistEmail = await isEmailAlreadyRegistered(email)
+   
+    if (!isExistEmail.isEmailRegistered) {
       return res.status(401).json({ message: "Usuário não encontrado" });
     }
 
-    const verifyPass = await bcrypt.compare(password, user.password);
+    const user = isExistEmail.user
+  
+    const verifyPass = await bcrypt.compare(password, user!.password);
 
     if (!verifyPass) {
       return res.status(401).json({ message: "Password incorrect" });
     }
 
     const userCookie = {
-      id: user.id,
-      email: user.email,
-      role: user.role
+      id: user!.id,
+      email: user!.email,
+      role: user!.role
     };
 
     const cookieOptions = {

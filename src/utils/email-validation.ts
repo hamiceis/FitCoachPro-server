@@ -1,6 +1,12 @@
+import { Professor, Student } from "@prisma/client";
 import { prisma } from "../lib/prisma"
 
-export async function isEmailAlreadyRegistered(email: string): Promise<boolean>{
+interface EmailAlreadyProps {
+  isEmailRegistered: boolean;
+  user?: Student | Professor
+}
+
+export async function isEmailAlreadyRegistered(email: string): Promise<EmailAlreadyProps>{
   try {
     const student = await prisma.student.findUnique({
       where: {
@@ -15,7 +21,10 @@ export async function isEmailAlreadyRegistered(email: string): Promise<boolean>{
   
     const isEmailRegistered = !!student || !!professor
     
-    return isEmailRegistered 
+    return {
+      isEmailRegistered,
+      user: student || professor || undefined
+    }
   } catch (error) {
     console.log("Error ao verificar email", error)
     throw new Error("Error ao verificar o email")

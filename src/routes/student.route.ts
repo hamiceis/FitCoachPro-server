@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { z } from "zod";
-import { DeserializerUser, authLogin } from "../middlewares/auth.middleware";
+import { authLogin } from "../middlewares/auth.middleware";
+import { DeserializerUser } from "../@types/types";
+
 
 export const routeStudent = Router();
 
