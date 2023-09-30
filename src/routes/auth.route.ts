@@ -140,5 +140,5 @@ route.post("/register/teacher", async (req: Request, res: Response) => {
 
 route.get("/logout", (req: Request, res:Response) => {
   res.cookie('authToken', null, { httpOnly: true, maxAge: 0})
-  res.status(200)
+  return res.status(200).json({ message: "logout success"})
 })
