@@ -35,7 +35,7 @@ routeStudent.patch("/student/connect", authLogin, async (req: Request, res: Resp
       });
 
       if (!teacher) {
-        return res.status(404).send("Professor não encontrado");
+        return res.status(404).json({ message: "Professor não encontrado"});
       }
 
       const student = await prisma.student.findUnique({
@@ -45,7 +45,7 @@ routeStudent.patch("/student/connect", authLogin, async (req: Request, res: Resp
       });
 
       if (!student) {
-        return res.status(404).send("Aluno não encontrado");
+        return res.status(404).json({ message: "Aluno não encontrado" })
       }
 
       await prisma.student.update({
