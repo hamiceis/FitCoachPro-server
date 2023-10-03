@@ -26,12 +26,12 @@ model Professor {
 
 // Model for Aluno
 model Student {
-  id                  String    @id @default(uuid())
+  id                  String     @id @default(uuid())
   name                String
-  email               String    @unique
+  email               String     @unique
   tel                 String?
   password            String
-  role                String    @default("user")
+  role                String     @default("user")
   gender              String?
   age                 Int
   height              Float
@@ -77,5 +77,6 @@ model Exercise {
   workout       Workout @relation(fields: [workoutId], references: [id])
   workoutId     String
 
+  @@unique([workoutId])
   @@map("exercise")
 }

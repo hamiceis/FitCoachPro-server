@@ -13,7 +13,7 @@ routeStudent.get("/students", async (req: Request, res: Response) => {
   return res.status(200).json(students);
 });
 
-routeStudent.patch("/student/connect", authLogin, async (req: Request, res: Response) => {
+routeStudent.post("/student/connect", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken
     const deserializedUser: DeserializerUser = JSON.parse(authToken);
 
@@ -31,7 +31,7 @@ routeStudent.patch("/student/connect", authLogin, async (req: Request, res: Resp
       const teacher = await prisma.professor.findUnique({
         where: {
           email: professor.email,
-        },
+        }
       });
 
       if (!teacher) {
@@ -42,10 +42,17 @@ routeStudent.patch("/student/connect", authLogin, async (req: Request, res: Resp
         where: {
           email: deserializedUser.email,
         },
+        include: {
+          professor: true,
+        }
       });
 
       if (!student) {
         return res.status(404).json({ message: "Aluno não encontrado" })
+      }
+
+      if (student.professor) {
+        return res.status(400).json({ message: "O aluno já está associado a um professor" });
       }
 
       await prisma.student.update({
