@@ -4,8 +4,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   try{
+    await prisma.professor.deleteMany()
+    await prisma.student.deleteMany()
     await prisma.exercise.deleteMany()
-    const result = await prisma.workout.deleteMany()
+    await prisma.workout.deleteMany()
   }catch(error){
     console.log(error)
   }

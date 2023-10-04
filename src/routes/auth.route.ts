@@ -70,7 +70,7 @@ route.post("/register/student", async (req: Request, res: Response) => {
 
     const existEmail = await isEmailAlreadyRegistered(user.email);
 
-    if (existEmail) {
+    if (existEmail.isEmailRegistered) {
       return res.status(401).send("Email já cadastrado");
     }
 
@@ -115,9 +115,9 @@ route.post("/register/teacher", async (req: Request, res: Response) => {
     const user = bodySchema.parse(req.body);
 
     const existEmail = await isEmailAlreadyRegistered(user.email);
-
-    if (existEmail) {
-      return res.status(401).send("Email já cadastrado");
+  
+    if (existEmail.isEmailRegistered) {
+      return res.status(401).json({ message: "Email já cadastrado"});
     }
 
     const hashedPassword = await bcrypt.hash(user.password, 10);
