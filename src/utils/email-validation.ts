@@ -6,6 +6,7 @@ interface EmailAlreadyProps {
   user?: Student | Professor
 }
 
+//Função que verifica se o email já foi registrado no banco de dados
 export async function isEmailAlreadyRegistered(email: string): Promise<EmailAlreadyProps>{
   try {
     const student = await prisma.student.findUnique({

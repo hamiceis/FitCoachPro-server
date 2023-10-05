@@ -7,6 +7,7 @@ import { isEmailAlreadyRegistered } from "../utils/email-validation";
 
 export const route = Router();
 
+//Fazer login 
 route.post("/login", async (req: Request, res: Response) => {
   const bodySchema = z.object({
     email: z.string().email(),
@@ -54,6 +55,7 @@ route.post("/login", async (req: Request, res: Response) => {
   }
 });
 
+//Criar conta com student
 route.post("/register/student", async (req: Request, res: Response) => {
   const bodySchema = z.object({
     name: z.string(),
@@ -103,6 +105,7 @@ route.post("/register/student", async (req: Request, res: Response) => {
   }
 });
 
+//Criar conta como teacher
 route.post("/register/teacher", async (req: Request, res: Response) => {
   const bodySchema = z.object({
     name: z.string(),
@@ -137,7 +140,7 @@ route.post("/register/teacher", async (req: Request, res: Response) => {
   }
 });
 
-
+//Deslogar 
 route.get("/logout", (req: Request, res:Response) => {
   res.cookie('authToken', null, { httpOnly: true, maxAge: 0})
   return res.status(200).json({ message: "logout success"})

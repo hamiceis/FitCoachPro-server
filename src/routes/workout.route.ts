@@ -11,17 +11,15 @@ import { verificationProperty } from "../utils/verification-data-body";
 
 export const routeWorkout = Router();
 
-// Rota verifica se quem se logou foi aluno ou professor, verifica as credenciais e devolve os treinos
+//Lista todos os workouts "Treino"
 routeWorkout.get("/workouts", async (req: Request, res: Response) => {
   const workouts = await prisma.workout.findMany();
   res.status(200);
   return res.json(workouts);
 });
 
-routeWorkout.get(
-  "/workdouts/:studentId",
-  authLogin,
-  async (req: Request, res: Response) => {
+//Lista os treinos do aluno especifico ou seu proprio treino
+routeWorkout.get("/workdouts/:studentId", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
     const paramsSchema = z.object({
@@ -72,11 +70,8 @@ routeWorkout.get(
   }
 );
 
-// Rota para recuperar meus treinos de aluno
-routeWorkout.get(
-  "/workouts/student/:studentId",
-  authLogin,
-  async (req: Request, res: Response) => {
+//Listar meus treinos como "student"
+routeWorkout.get("/workouts/student/:studentId", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -120,11 +115,8 @@ routeWorkout.get(
   }
 );
 
-// Rota para recuperar treinos do aluno,  passando o id pelos params
-routeWorkout.get(
-  "/workouts/teacher/:studentId",
-  authLogin,
-  async (req: Request, res: Response) => {
+//Listar treinos do meu "student", passando seu id pelos params
+routeWorkout.get("/workouts/teacher/:studentId", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -165,11 +157,8 @@ routeWorkout.get(
   }
 );
 
-//Cadastrar um novo treino e exercicio
-routeWorkout.post(
-  "/workouts/:studentId",
-  authLogin,
-  async (req: Request, res: Response) => {
+//Cadastrar um novo treino e exercicio para um "student"
+routeWorkout.post("/workouts/:studentId", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -180,7 +169,7 @@ routeWorkout.post(
     const bodySchema = z.object({
       type: z.string(),
       weekDay: z.number(),
-      dayMonth: z.date().optional().default(new Date()),
+      dayMonth: z.date().optional(),
       exerciseName: z.string(),
       repetitions: z.string(),
       interval: z.string(),
@@ -191,6 +180,7 @@ routeWorkout.post(
     });
 
     const { studentId } = paramsSchema.parse(req.params);
+  
     const body = bodySchema.parse(req.body);
 
     const teacher = await prisma.professor.findUnique({
@@ -224,14 +214,12 @@ routeWorkout.post(
       // Crie o objeto "data" que contém informações de Workout e Exercise
       const data: WorkoutAndExerciseProps = {
         Workout: {
-          id: "",
           type: body.type,
           day_month: body.dayMonth || null,
           week_day: body.weekDay,
           studentId: student.id,
         },
         Exercise: {
-          id: "",
           name_exercise: body.exerciseName,
           repetitions: body.repetitions,
           interval: body.interval,
@@ -239,7 +227,6 @@ routeWorkout.post(
           load: parseFloat(body.load),
           cadence: body.cadence,
           observation: body.observation || "",
-          workoutId: "",
         },
       };
 
@@ -252,12 +239,13 @@ routeWorkout.post(
         },
       });
 
+  
       const exercise = await prisma.exercise.create({
         data: {
           ...data.Exercise,
-          id: workout.id,
+          workoutId: workout.id
         },
-      });
+      })
 
       const result = {
         workout,
@@ -272,23 +260,20 @@ routeWorkout.post(
   }
 );
 
-// alterar ou atualiza o treino
-routeWorkout.patch(
-  "/workout/:studentId/:exerciseId",
-  authLogin,
-  async (req: Request, res: Response) => {
+// alterar ou atualizar o treino e execicio
+routeWorkout.patch("/workout/:studentId/:workoutid", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
     const paramsSchema = z.object({
       studentId: z.string().uuid(),
-      exerciseId: z.string().uuid(),
+      workoutid: z.string().uuid(),
     });
 
     const bodySchema = z.object({
       type: z.string().optional(),
       weekDay: z.number().optional(),
-      dayMonth: z.date().optional().default(new Date()),
+      dayMonth: z.date().optional(),
       exerciseName: z.string().optional(),
       repetitions: z.string().optional(),
       interval: z.string().optional(),
@@ -298,7 +283,7 @@ routeWorkout.patch(
       observation: z.string().optional(),
     });
 
-    const { studentId, exerciseId } = paramsSchema.parse(req.params);
+    const { studentId, workoutid } = paramsSchema.parse(req.params);
     const body = bodySchema.parse(req.body);
     const data = verificationProperty(body);
 
@@ -307,8 +292,12 @@ routeWorkout.patch(
         id: studentId,
       },
       include: {
-        workouts: true,
-      },
+        workouts: {
+          select: {
+            id: true,
+          }
+        },
+      }
     });
     const teacher = await prisma.professor.findUnique({
       where: {
@@ -316,11 +305,7 @@ routeWorkout.patch(
       },
     });
 
-    const exercise = await prisma.exercise.findUnique({
-      where: {
-        id: exerciseId,
-      },
-    });
+    const workout = student?.workouts.filter(workout => workout.id === workoutid)
 
     try {
       if (!student) {
@@ -331,29 +316,44 @@ routeWorkout.patch(
         return res.status(403).json({ message: "Unauthorized" });
       }
 
-      if (!exercise) {
-        return res.status(404).json({ message: "Exercise not found" });
+      if (!workout || workout.length === 0) {
+        return res.status(404).json({ message: "Workout not found" });
       }
 
-      const workdout = await prisma.workout.update({
+      const exercise = await prisma.exercise.findUnique({
         where: {
-          id: exercise.id,
+          workoutId: workout[0].id
+        }
+      })
+   
+      if(!exercise) {
+        return res.status(400).json({ message: "Exercise not found"})
+      }
+
+      const updatedWorkout = await prisma.workout.update({
+        where: {
+          id: workoutid
+        }, 
+        data: {
+          ...data.workout
+        }
+      })
+
+      const updatedExercise = await prisma.exercise.update({
+        where: {
+          id: exercise.id
         },
         data: {
-          ...data.workout,
-        },
-      });
+          ...data.exercise
+        }
+      })
 
-      await prisma.exercise.update({
-        where: {
-          id: workdout.id,
-        },
-        data: {
-          ...data.exercise,
-        },
-      });
+      const result = {
+        updatedWorkout,
+        updatedExercise
+      }
 
-      return res.status(200).json({ message: "Workout and Exercise updated" });
+      return res.status(200).json(result);
     } catch (error) {
       console.log("[INTERNAL_SERVER_ERROR_patch_workout]", error);
       return res.status(500).json({ message: "Internal server error" });
@@ -361,10 +361,8 @@ routeWorkout.patch(
   }
 );
 
-routeWorkout.delete(
-  "/workouts/:studentId/:workoutId",
-  authLogin,
-  async (req: Request, res: Response) => {
+// Deletar treino e exercicio de "student"
+routeWorkout.delete("/workouts/:studentId/:workoutId", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 

@@ -7,6 +7,6 @@ export type DeserializerUser = {
 }
 
 export interface WorkoutAndExerciseProps {
-  Workout: Workout;
-  Exercise: Exercise;
+  Workout: Omit<Workout, "id">
+  Exercise: Omit<Exercise, "id" | "workoutId">;
 }

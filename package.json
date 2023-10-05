@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^5.3.1",
+    "@prisma/client": "^5.4.1",
     "@types/cookie-parser": "^1.4.4",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
@@ -28,7 +28,7 @@
     "@types/lodash": "^4.14.199",
     "@types/node": "^20.6.5",
     "dotenv": "^16.3.1",
-    "prisma": "^5.3.1",
+    "prisma": "^5.4.1",
     "tsx": "^3.13.0",
     "typescript": "^5.2.2"
   }
