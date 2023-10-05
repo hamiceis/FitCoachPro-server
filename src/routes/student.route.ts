@@ -8,11 +8,13 @@ import { DeserializerUser } from "../@types/types";
 
 export const routeStudent = Router();
 
+//Listar todos os alunos
 routeStudent.get("/students", async (req: Request, res: Response) => {
   const students = await prisma.student.findMany();
   return res.status(200).json(students);
 });
 
+//Aluno se associar a um teacher informando o email do teacher
 routeStudent.post("/student/connect", authLogin, async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken
     const deserializedUser: DeserializerUser = JSON.parse(authToken);
@@ -76,7 +78,7 @@ routeStudent.post("/student/connect", authLogin, async (req: Request, res: Respo
   }
 );
 
-
+//Atualizar dados de student
 routeStudent.put("/student", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken;
   const user: DeserializerUser = JSON.parse(authToken);
@@ -130,3 +132,5 @@ routeStudent.put("/student", authLogin, async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
+
+

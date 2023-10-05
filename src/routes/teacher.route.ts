@@ -7,11 +7,13 @@ import { DeserializerUser } from "../@types/types";
 
 export const routeTeather = Router();
 
+//Listar todos os teachers
 routeTeather.get("/teachers", async (req: Request, res: Response) => {
   const teacher = await prisma.professor.findMany()
   return res.status(200).json(teacher)
 })
 
+//Listar todos os teachers e students
 routeTeather.get("/teachers/students",  async (req: Request, res: Response) => {
   const teacher = await prisma.professor.findMany({
     include: {
@@ -21,6 +23,7 @@ routeTeather.get("/teachers/students",  async (req: Request, res: Response) => {
   return res.status(200).json(teacher)
 })
 
+//Listar todos os alunos de apenas um único teacher
 routeTeather.get("/teacher/students", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
@@ -45,6 +48,7 @@ routeTeather.get("/teacher/students", authLogin, async (req: Request, res: Respo
   }
 })
 
+//Remove um aluno da lista do teacher
 routeTeather.delete("/teacher/students/:studentId", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
@@ -92,6 +96,7 @@ routeTeather.delete("/teacher/students/:studentId", authLogin, async (req: Reque
   }
 })
 
+//Atualizar seus dados de teacher
 routeTeather.put("/teacher", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken;
   const user: DeserializerUser = JSON.parse(authToken);
@@ -141,3 +146,78 @@ routeTeather.put("/teacher", authLogin, async (req: Request, res: Response) => {
     res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER" });
   }
 });
+
+//Teacher adiciona aluno a sua lista de students
+routeTeather.post("/teacher/students", authLogin, async (req: Request, res: Response) => {
+  const authToken = req.cookies.authToken
+  const user: DeserializerUser = JSON.parse(authToken)
+
+  const bodySchema = z.object({
+    email: z.string().email()
+  })
+  const { email } = bodySchema.parse(req.body)
+
+  const teacher = await prisma.professor.findUnique({
+    where: {
+      id: user.id
+    },
+    include: {
+      students: true,
+    }
+  })
+
+  const student = await prisma.student.findUnique({
+    where: {
+      email
+    },
+    include: {
+      professor: true,
+    }
+  })
+
+  try {
+    if(!teacher) {
+      return res.status(400).json({ message: "Teacher not found"})
+    }
+
+    if(!student) {
+      return res.status(400).json({ message: "Student not exist"})
+    }
+
+    if(student.professor) {
+      return res.status(400).json({ message: "Aluno já associado a um professor"})
+    }
+
+    const filterStudent = teacher.students.filter(student => student.email === email)
+    
+
+    if(filterStudent.length > 0) {
+      return res.status(400).json({ message: "Student already singup"})
+    }
+
+
+    const newStudent = await prisma.professor.update({
+      where: {
+        id: user.id
+      },
+      data: {
+        students: {
+          connect: {
+            id: student.id
+          }
+        }
+      },
+      include: {
+        students: true,
+      }
+    })
+
+    const dataNewStudent = newStudent.students[newStudent.students.length -1]
+
+    return res.status(200).json({ message: `Aluno ${dataNewStudent.name} cadastrado com sucesso a sua lista`})
+
+  } catch (error) {
+    console.log("[INTERNAL_SERVER_ERROR_teacher_post]", error)
+    return res.status(500).json({ message: "Internal Server Error"})
+  }
+})
