@@ -28,8 +28,19 @@ routeTeather.get("/teacher/students", authLogin, async (req: Request, res: Respo
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
 
+  const teacher = await prisma.professor.findUnique({
+    where: {
+      id: user.id
+    }
+  })
+
   try {
-    if(!user.id) {
+
+    if(user.role !== "admin"){
+      return res.status(400).json({ message: "You are not authorized"})
+    }
+
+    if(!teacher) {
       return res.status(401).json({ message: "professor não encontrado, ou não informado"})
     }
 

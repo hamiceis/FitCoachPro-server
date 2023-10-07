@@ -8,7 +8,11 @@ export async function getTeacherStudentWorkouts(teacherId: string, studentId: st
     include: {
       students: {
         include: {
-          workouts: true,
+          workouts: {
+            include: {
+              exercises: true,
+            }
+          }
         },
       },
     },

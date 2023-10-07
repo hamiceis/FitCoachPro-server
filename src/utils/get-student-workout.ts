@@ -7,7 +7,11 @@ export async function getStudentWorkouts(studentId: string) {
       id: studentId,
     },
     include: {
-      workouts: true,
+      workouts: {
+        include: {
+          exercises: true,
+        }
+      }
     },
   });
 
