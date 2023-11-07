@@ -272,7 +272,7 @@ routeTeather.patch("/teacher/student/:studentId", authLogin, async (req: Request
       return res.status(403).json({ message: "Você não tem permissão para atualizar dados desse aluno" });
     }
 
-    const student = teacher.students.filter(student => student.id === studentId)
+    const student = teacher.students.find(student => student.id === studentId)
 
     if(!student) {
       return res.status(401).json({ message: "Student não está na sua lista"})
@@ -292,7 +292,7 @@ routeTeather.patch("/teacher/student/:studentId", authLogin, async (req: Request
 
     const studentUpdated = await prisma.student.update({
       where: {
-        id: student[0].id
+        id: student.id
       }, 
       data
     })
