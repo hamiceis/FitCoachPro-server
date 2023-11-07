@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express"
 import { prisma } from "../lib/prisma";
+import dayjs from "dayjs"
 import { z } from "zod"
 import bcrypt from "bcrypt"
 import { authLogin } from "../middlewares/auth.middleware";
@@ -230,5 +231,76 @@ routeTeather.post("/teacher/students", authLogin, async (req: Request, res: Resp
   } catch (error) {
     console.log("[INTERNAL_SERVER_ERROR_teacher_post]", error)
     return res.status(500).json({ message: "Internal Server Error"})
+  }
+})
+
+//Teacher adiciona informações adicionais aos dados do student
+routeTeather.patch("/teacher/student/:studentId", authLogin, async (req: Request, res: Response) => {
+  const authToken = req.cookies.authToken
+  const user: DeserializerUser = JSON.parse(authToken)
+  const studentId = req.params.studentId
+
+  const bodySchema = z.object({
+    weight: z.string().optional(),
+    imc: z.string().optional(),
+    training_level: z.number().optional(),
+    conditioning_level: z.number().optional(),
+    weekly_Frequency: z.number().optional(),
+    goal: z.string().optional(),
+    protocol_start_date: z.string().optional(),
+    protocol_end_date: z.string().optional(),
+    observations: z.string().optional()
+  })
+
+  try {
+    const body = bodySchema.parse(req.body)
+
+    const teacher = await prisma.professor.findUnique({
+      where: {
+        id: user.id
+      },
+      include: {
+        students: true,
+      }
+    })
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Professor não encontrado" });
+    }
+
+    if (teacher.id !== user.id) {
+      return res.status(403).json({ message: "Você não tem permissão para atualizar dados desse aluno" });
+    }
+
+    const student = teacher.students.filter(student => student.id === studentId)
+
+    if(!student) {
+      return res.status(401).json({ message: "Student não está na sua lista"})
+    }
+    
+    const data: any = {}
+    
+    if(body.weight) data.weight = parseFloat(body.weight)
+    if(body.imc) data.imc = parseFloat(body.imc)
+    if(body.training_level)  data.training_level = body.training_level
+    if(body.conditioning_level) data.conditioning_level = body.conditioning_level
+    if(body.weekly_Frequency) data.weekly_Frequency = body.weekly_Frequency
+    if(body.goal) data.goal = body.goal
+    if(body.protocol_start_date) data.protocol_start_date = dayjs(body.protocol_start_date).toISOString()
+    if(body.protocol_end_date) data.protocol_end_date = dayjs(body.protocol_end_date).toISOString()
+    if(body.observations) data.observations = body.observations
+
+    const studentUpdated = await prisma.student.update({
+      where: {
+        id: student[0].id
+      }, 
+      data
+    })
+
+    return res.status(200).json(studentUpdated)
+
+  } catch(error) {
+    console.error("[INTERNAL_SERVER_ERROR]", error);
+    res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER_Student" });
   }
 })
