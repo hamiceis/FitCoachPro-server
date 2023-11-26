@@ -15,12 +15,13 @@ routeStudent.get("/students", async (req: Request, res: Response) => {
 });
 
 //Buscar dados de um unico aluno que esteja na lista do professor
-routeStudent.get("/student/:studentId", authLogin, async (req: Request, res: Response) => {
-  const authToken = req.cookies.authToken
-  const deserializedUser: DeserializerUser = JSON.parse(authToken)
-  const studentId = req.params.studentId
-
+routeStudent.get("/students/:studentId", authLogin, async (req: Request, res: Response) => {
   try {
+    const { cookies, params } = req;
+    const authToken = cookies.authToken;
+    const deserializedUser: DeserializerUser = JSON.parse(authToken);
+    const studentId = params.studentId;
+
     const teacher = await prisma.professor.findUnique({
       where: {
         id: deserializedUser.id
@@ -28,30 +29,29 @@ routeStudent.get("/student/:studentId", authLogin, async (req: Request, res: Res
       include: {
         students: true,
       }
-    })
+    });
 
     if (!teacher) {
-      return res.status(401).json({ message: "Professor não encontrado" })
+      return res.status(404).json({ message: "Professor não encontrado" });
     }
 
-    const user = teacher.students.find(user => user.id === studentId)
+    const user = teacher.students.find(user => user.id === studentId);
 
     if (!user) {
-      return res.status(401).send("Usuário não encontrado na lista do professor")
+      return res.status(404).send("Usuário não encontrado na lista do professor");
     }
 
-    if(user.professorId !== deserializedUser.id) {
-      return res.status(401).send("Professor não tem permissão para consultar usuário")
+    if (user.professorId !== deserializedUser.id) {
+      return res.status(403).send("Professor não tem permissão para consultar usuário");
     }
 
-    return res.status(200).json(user)
-
+    return res.status(200).json(user);
   } catch (error) {
-    console.log("[INTERNAL_SERVER_ERROR_GET_STUDENT]", error)
-    return res.status(500).send("Internal server error")
+    console.error("[INTERNAL_SERVER_ERROR_GET_STUDENT]", error);
+    return res.status(500).send("Internal server error");
   }
+});
 
-})
 
 //Aluno se associar a um teacher informando o email do teacher
 routeStudent.post("/student/connect", authLogin, async (req: Request, res: Response) => {
