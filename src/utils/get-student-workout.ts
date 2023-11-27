@@ -4,17 +4,16 @@ import { prisma } from "../lib/prisma";
 export async function getStudentWorkouts(studentId: string) {
   const student = await prisma.student.findUnique({
     where: {
-      id: studentId,
+      id: studentId
     },
     include: {
       workouts: {
         include: {
-          exercises: true,
+          exercises: true
         }
       }
-    },
-  });
-
+    }
+  })
   return student;
 }
 

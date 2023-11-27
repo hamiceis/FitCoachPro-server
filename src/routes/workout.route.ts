@@ -6,7 +6,7 @@ import { DeserializerUser, WorkoutAndExerciseProps } from "../@types/types";
 import { Workout } from "@prisma/client";
 
 import { getStudentWorkouts } from "../utils/get-student-workout";
-import { getTeacherStudentWorkouts } from "../utils/get-student-teacher-workdout";
+import { getTeacherStudentWorkouts } from "../utils/get-student-teacher-workout";
 import { verificationProperty } from "../utils/verification-data-body";
 
 export const routeWorkout = Router();
@@ -19,9 +19,9 @@ routeWorkout.get("/workouts", async (req: Request, res: Response) => {
 });
 
 //Lista os treinos do aluno especifico ou seu proprio treino
-routeWorkout.get("/workdouts/:studentId", authLogin, async (req: Request, res: Response) => {
-    const authToken = req.cookies.authToken;
-    const user: DeserializerUser = JSON.parse(authToken);
+routeWorkout.get(
+  "/workouts/:studentId",
+  async (req: Request, res: Response) => {
     const paramsSchema = z.object({
       studentId: z.string().uuid(),
     });
@@ -30,38 +30,21 @@ routeWorkout.get("/workdouts/:studentId", authLogin, async (req: Request, res: R
       const { studentId } = paramsSchema.parse(req.params);
       let result: Workout[];
 
-      if (user.role === "user") {
-        const student = await getStudentWorkouts(studentId);
+      const student = await getStudentWorkouts(studentId)
 
-        if (!student || student.id !== user.id) {
-          return res
-            .status(401)
-            .json({ message: "Aluno não encontrado ou não se correspondem" });
-        }
-        result = student.workouts;
-        if (result.length === 0) {
-          return res
-            .status(201)
-            .json({ message: "Não foram encontrados treinos" });
-        }
-      } else {
-        const student = await getTeacherStudentWorkouts(user.id, studentId);
-
-        if (!student) {
-          return res.status(400).json({
-            message: "Esse aluno não está associado ao seu perfil de professor",
-          });
-        }
-
-        if (student.workouts.length === 0) {
-          return res
-            .status(201)
-            .json({ message: "Não foram encontrados treinos para esse aluno" });
-        }
-
-        result = student.workouts;
+      if (!student) {
+        return res.status(400).json({
+          message: "Esse aluno não está associado ao seu perfil de professor",
+        });
       }
 
+      if (student.workouts.length === 0) {
+        return res
+          .status(201)
+          .json({ message: "Não foram encontrados treinos para esse aluno" });
+      }
+
+      result = student.workouts;
       return res.status(200).json(result);
     } catch (error) {
       console.log("[ERROR_ROUTE_workouts_student]", error);
@@ -71,7 +54,10 @@ routeWorkout.get("/workdouts/:studentId", authLogin, async (req: Request, res: R
 );
 
 //Listar meus treinos como "student"
-routeWorkout.get("/workouts/student/:studentId", authLogin, async (req: Request, res: Response) => {
+routeWorkout.get(
+  "/workouts/student/:studentId",
+  authLogin,
+  async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -116,7 +102,10 @@ routeWorkout.get("/workouts/student/:studentId", authLogin, async (req: Request,
 );
 
 //Listar treinos do meu "student", passando seu id pelos params
-routeWorkout.get("/workouts/teacher/:studentId", authLogin, async (req: Request, res: Response) => {
+routeWorkout.get(
+  "/workouts/teacher/:studentId",
+  authLogin,
+  async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -158,7 +147,10 @@ routeWorkout.get("/workouts/teacher/:studentId", authLogin, async (req: Request,
 );
 
 //Cadastrar um novo treino e exercicio para um "student"
-routeWorkout.post("/workouts/:studentId", authLogin, async (req: Request, res: Response) => {
+routeWorkout.post(
+  "/workouts/:studentId",
+  authLogin,
+  async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -180,7 +172,7 @@ routeWorkout.post("/workouts/:studentId", authLogin, async (req: Request, res: R
     });
 
     const { studentId } = paramsSchema.parse(req.params);
-  
+
     const body = bodySchema.parse(req.body);
 
     const teacher = await prisma.professor.findUnique({
@@ -239,13 +231,12 @@ routeWorkout.post("/workouts/:studentId", authLogin, async (req: Request, res: R
         },
       });
 
-  
       const exercise = await prisma.exercise.create({
         data: {
           ...data.Exercise,
-          workoutId: workout.id
+          workoutId: workout.id,
         },
-      })
+      });
 
       const result = {
         workout,
@@ -261,7 +252,10 @@ routeWorkout.post("/workouts/:studentId", authLogin, async (req: Request, res: R
 );
 
 // alterar ou atualizar o treino e execicio
-routeWorkout.patch("/workout/:studentId/:workoutid", authLogin, async (req: Request, res: Response) => {
+routeWorkout.patch(
+  "/workout/:studentId/:workoutid",
+  authLogin,
+  async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 
@@ -295,9 +289,9 @@ routeWorkout.patch("/workout/:studentId/:workoutid", authLogin, async (req: Requ
         workouts: {
           select: {
             id: true,
-          }
+          },
         },
-      }
+      },
     });
     const teacher = await prisma.professor.findUnique({
       where: {
@@ -305,7 +299,9 @@ routeWorkout.patch("/workout/:studentId/:workoutid", authLogin, async (req: Requ
       },
     });
 
-    const workout = student?.workouts.filter(workout => workout.id === workoutid)
+    const workout = student?.workouts.filter(
+      (workout) => workout.id === workoutid
+    );
 
     try {
       if (!student) {
@@ -322,36 +318,36 @@ routeWorkout.patch("/workout/:studentId/:workoutid", authLogin, async (req: Requ
 
       const exercise = await prisma.exercise.findUnique({
         where: {
-          workoutId: workout[0].id
-        }
-      })
-   
-      if(!exercise) {
-        return res.status(400).json({ message: "Exercise not found"})
+          workoutId: workout[0].id,
+        },
+      });
+
+      if (!exercise) {
+        return res.status(400).json({ message: "Exercise not found" });
       }
 
       const updatedWorkout = await prisma.workout.update({
         where: {
-          id: workoutid
-        }, 
+          id: workoutid,
+        },
         data: {
-          ...data.workout
-        }
-      })
+          ...data.workout,
+        },
+      });
 
       const updatedExercise = await prisma.exercise.update({
         where: {
-          id: exercise.id
+          id: exercise.id,
         },
         data: {
-          ...data.exercise
-        }
-      })
+          ...data.exercise,
+        },
+      });
 
       const result = {
         updatedWorkout,
-        updatedExercise
-      }
+        updatedExercise,
+      };
 
       return res.status(200).json(result);
     } catch (error) {
@@ -362,7 +358,10 @@ routeWorkout.patch("/workout/:studentId/:workoutid", authLogin, async (req: Requ
 );
 
 // Deletar treino e exercicio de "student"
-routeWorkout.delete("/workouts/:studentId/:workoutId", authLogin, async (req: Request, res: Response) => {
+routeWorkout.delete(
+  "/workouts/:studentId/:workoutId",
+  authLogin,
+  async (req: Request, res: Response) => {
     const authToken = req.cookies.authToken;
     const user: DeserializerUser = JSON.parse(authToken);
 

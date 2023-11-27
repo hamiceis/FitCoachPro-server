@@ -20,7 +20,11 @@ routeStudent.get("/students/:studentId", authLogin, async (req: Request, res: Re
     const { cookies, params } = req;
     const authToken = cookies.authToken;
     const deserializedUser: DeserializerUser = JSON.parse(authToken);
-    const studentId = params.studentId;
+    const paramsSchema = z.object({
+      studentId: z.string().uuid()
+    })
+
+    const { studentId } = paramsSchema.parse(params.studentId)
 
     const teacher = await prisma.professor.findUnique({
       where: {
