@@ -38,12 +38,6 @@ routeWorkout.get(
         });
       }
 
-      if (student.workouts.length === 0) {
-        return res
-          .status(201)
-          .json({ message: "Não foram encontrados treinos para esse aluno" });
-      }
-
       result = student.workouts;
       return res.status(200).json(result);
     } catch (error) {
@@ -87,12 +81,6 @@ routeWorkout.get(
 
       const result = student.workouts;
 
-      if (result.length === 0) {
-        return res
-          .status(201)
-          .json({ message: "Não foram encontrado treinos" });
-      }
-
       return res.status(200).json(result);
     } catch (error) {
       console.log("[ERROR_ROUTE_workouts_student]", error);
@@ -131,12 +119,6 @@ routeWorkout.get(
       }
 
       const result = student.workouts;
-
-      if (result.length === 0) {
-        return res
-          .status(201)
-          .json({ message: "Não foram encontrados treinos para esse aluno" });
-      }
 
       return res.status(200).json(result);
     } catch (error) {
