@@ -83,6 +83,5 @@ model Exercise {
   workout       Workout @relation(fields: [workoutId], references: [id])
   workoutId     String
  
-  @@unique([workoutId])
   @@map("exercise")
 }

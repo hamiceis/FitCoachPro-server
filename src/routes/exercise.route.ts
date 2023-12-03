@@ -13,90 +13,214 @@ routeExercise.get("/exercises", async (req: Request, res: Response) => {
 });
 
 //Student lista todos os seus exercicios
-routeExercise.get("/student/exercises", authLogin, async (req: Request, res: Response) => {
-  try {
+routeExercise.get(
+  "/student/exercises",
+  authLogin,
+  async (req: Request, res: Response) => {
+    try {
       const authToken = req.cookies.authToken;
       const user: DeserializerUser = JSON.parse(authToken);
 
       const student = await prisma.student.findUnique({
-          where: {
-              id: user.id,
+        where: {
+          id: user.id,
+        },
+        include: {
+          workouts: {
+            include: {
+              exercises: true,
+            },
           },
-          include: {
-              workouts: {
-                  include: {
-                      exercises: true,
-                  },
-              },
-          },
+        },
       });
 
       if (!student) {
-          return res.status(404).json({ message: "Student not found" });
+        return res.status(404).json({ message: "Student not found" });
       }
 
-      const exercises = student.workouts.flatMap((workout) => workout.exercises);
+      const exercises = student.workouts.flatMap(
+        (workout) => workout.exercises
+      );
 
       if (exercises.length === 0) {
-          return res.status(401).json({ message: "Student does not have exercises" });
+        return res
+          .status(401)
+          .json({ message: "Student does not have exercises" });
       }
 
       return res.status(200).json(exercises);
-  } catch (error) {
+    } catch (error) {
       console.error("[INTERNAL_SERVER_ERROR_get_exercises]", error);
       return res.status(500).json({ message: "Internal Server Error" });
+    }
   }
-});
-
+);
 
 //Teacher lista execicios de aluno
-routeExercise.get("/exercises/:studentId", authLogin, async (req: Request, res: Response) => {
-  const authToken = req.cookies.authToken;
-  const user: DeserializerUser = JSON.parse(authToken);
+routeExercise.get(
+  "/exercises/:studentId",
+  authLogin,
+  async (req: Request, res: Response) => {
+    const authToken = req.cookies.authToken;
+    const user: DeserializerUser = JSON.parse(authToken);
 
-  const paramsSchema = z.object({
+    const paramsSchema = z.object({
       studentId: z.string(),
-  });
+    });
 
-  try {
+    try {
       const { studentId } = paramsSchema.parse(req.params);
 
       const student = await prisma.student.findUnique({
-          where: {
-              id: studentId,
+        where: {
+          id: studentId,
+        },
+        include: {
+          workouts: {
+            include: {
+              exercises: true,
+            },
           },
-          include: {
-              workouts: {
-                  include: {
-                      exercises: true,
-                  },
-              },
-          },
+        },
       });
 
       const teacher = await prisma.professor.findUnique({
-          where: {
-              id: user.id,
-          },
+        where: {
+          id: user.id,
+        },
       });
 
       if (!student || !teacher) {
-          return res.status(404).json({ message: "Teacher or Student not found" });
+        return res
+          .status(404)
+          .json({ message: "Teacher or Student not found" });
       }
 
       if (student.professorId !== teacher.id) {
-          return res.status(403).json({ message: "Unauthorized" });
+        return res.status(403).json({ message: "Unauthorized" });
       }
 
       if (student.workouts.length === 0) {
-          return res.status(401).json({ message: "Student does not have exercises" });
+        return res
+          .status(401)
+          .json({ message: "Student does not have exercises" });
       }
 
-      const exercises = student.workouts.flatMap(workout => workout.exercises)
+      const exercises = student.workouts.flatMap(
+        (workout) => workout.exercises
+      );
 
       return res.status(200).json(exercises);
-  } catch (error) {
+    } catch (error) {
       console.log("INTERNAL_SERVER_ERROR", error);
       return res.status(500).json("Internal server error_get_exercises");
+    }
   }
-});
+);
+
+//Criar um novo exercício para um aluno, passando o WorkoutId pelos params
+routeExercise.post(
+  "/exercise/:workoutId",
+  async (req: Request, res: Response) => {
+    //implementar lógica authToken, para ver se o aluno pertence ao mesmo professor
+
+    const paramsSchema = z.object({
+      workoutId: z.string().uuid(),
+    });
+
+    const bodySchema = z.object({
+      exerciseName: z.string().min(1, "campo obrigátorio"),
+      repetitions: z.string().min(1, "Campo obrigátorio"),
+      interval: z.string().min(1, {
+        message: "Campo obrigátorio",
+      }),
+      method: z.string().optional(),
+      load: z.number().min(1, "Campo obrigatório"),
+      cadence: z.string().min(1),
+      observation: z.string().optional(),
+    });
+
+    const data = bodySchema.parse(req.body);
+
+    const { workoutId } = paramsSchema.parse(req.params);
+
+    try {
+      const workouts = await prisma.workout.findFirst({
+        where: {
+          id: workoutId,
+        },
+      });
+
+      if (!workouts) {
+        return res.status(201).json({ message: "Não foram encontrados treinos" });
+      }
+
+      if (!data) {
+        return res
+          .status(401)
+          .json({ message: "Você precisa enviar os dados do exercise" });
+      }
+
+      await prisma.exercise.create({
+        data: {
+          name_exercise: data.exerciseName,
+          repetitions: data.repetitions,
+          load: data.load,
+          method: data.method,
+          cadence: data.cadence,
+          interval: data.interval,
+          observation: data.observation,
+          workout: {
+            connect: {
+              id: workoutId,
+            },
+          },
+        },
+      });
+
+      return res.status(200).json({ message: "Exercício criado com sucesso" });
+    } catch (error) {
+      console.log("INTERNAL_SERVER_ERROR", error);
+      return res.status(500).json("INTERNAL_SERVER_ERROR");
+    }
+  }
+);
+
+//removendo exercício passando wokroutId e ExerciseId pelos params
+routeExercise.delete("/exercise/:workoutId/:exerciseId", async (req: Request, res: Response) => {
+    //implementar lógica com middleware authToken, para saber se o aluno pertence ao mesmo professor
+
+    const paramsSchema = z.object({
+        workoutId: z.string().uuid(),
+        exerciseId: z.string().uuid()
+    })
+
+    const { workoutId , exerciseId } = paramsSchema.parse(req.params)
+
+    try {
+        // Verifique se o exercício pertence ao treino
+        const exercise = await prisma.exercise.findFirst({
+            where: {
+                id: exerciseId,
+                 workoutId: workoutId
+            }
+        })
+
+        if(!exercise) {
+            return res.status(404).json({ message: "Exercício não encontrado"})
+        }
+
+        await prisma.exercise.delete({
+            where: {
+                id: exerciseId
+            }
+        })
+
+        return res.status(200).json({ message: "Exercício removido com sucesso"})
+
+    } catch (error) {
+        console.log("INTERNAL_SERVER_ERROR", error);
+        return res.status(500).json("INTERNAL_SERVER_ERROR");
+    }
+})
+
