@@ -11,6 +11,7 @@ interface BodyProps {
   observation?: string;
 }
 
+
 //Função que verifica se os os campos que existem no "body" da requisição e devolte um Obj esses dados. 
 export function verificationProperty(body: BodyProps) {
   const data = {

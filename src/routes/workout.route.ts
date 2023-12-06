@@ -260,6 +260,7 @@ routeWorkout.patch(
     });
 
     const { studentId, workoutid } = paramsSchema.parse(req.params);
+
     const body = bodySchema.parse(req.body);
     const data = verificationProperty(body);
 
@@ -281,9 +282,7 @@ routeWorkout.patch(
       },
     });
 
-    const workout = student?.workouts.filter(
-      (workout) => workout.id === workoutid
-    );
+    const workout = student?.workouts.find((workout) => workout.id === workoutid)
 
     try {
       if (!student) {
@@ -294,15 +293,15 @@ routeWorkout.patch(
         return res.status(403).json({ message: "Unauthorized" });
       }
 
-      if (!workout || workout.length === 0) {
+      if (!workout) {
         return res.status(404).json({ message: "Workout not found" });
       }
 
-      const exercise = await prisma.exercise.findUnique({
+      const exercise = await prisma.exercise.findFirst({
         where: {
-          workoutId: workout[0].id,
-        },
-      });
+          workoutId: workout.id
+        }
+      })
 
       if (!exercise) {
         return res.status(400).json({ message: "Exercise not found" });

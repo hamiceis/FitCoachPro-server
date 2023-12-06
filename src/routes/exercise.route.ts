@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { authLogin } from "../middlewares/auth.middleware";
 import { z } from "zod";
 import { DeserializerUser } from "../@types/types";
+import { Exercise } from "@prisma/client";
 
 export const routeExercise = Router();
 
@@ -185,6 +186,85 @@ routeExercise.post(
     }
   }
 );
+
+//Atualizar/Alterar exercícios já cadastrados
+routeExercise.patch("/exercise/:workoutId/:exerciseId", async (req: Request, res: Response) => {
+  //implementar lógica, se o professor tem permissão de atualizar exercicio 
+
+
+  const paramsSchema = z.object({
+    workoutId: z.string().uuid(),
+    exerciseId: z.string().uuid()
+  })
+
+  const bodySchema = z.object({
+      exerciseName: z.string().optional(),
+      repetitions: z.string().optional(),
+      interval: z.string().optional(),
+      method: z.string().optional(),
+      load: z.string().optional(),
+      cadence: z.string().optional(),
+      observation: z.string().optional(),
+  })
+
+  const { workoutId, exerciseId } = paramsSchema.parse(req.params)
+  const body = bodySchema.parse(req.body)
+
+  try {
+    const workout = await prisma.workout.findUnique({
+      where: {
+        id: workoutId
+      }
+    })
+    const exercise = await prisma.exercise.findFirst({
+      where: {
+        id: exerciseId,
+        workoutId
+      }
+    })
+
+    if(!workout || !exercise) {
+      return res.status(404).json({ message: "Workout or exercise not found"})
+    }
+
+    const data = {} as {
+      name_exercise?: string;
+      repetitions?: string;
+      interval?: string;
+      method?: string;
+      cadence?: string;
+      observation?: string;
+      load?: number
+    }
+
+    if(body.exerciseName) data.name_exercise = body.exerciseName
+    if(body.repetitions) data.repetitions = body.repetitions
+    if(body.interval) data.interval = body.interval
+    if(body.method) data.method = body.method
+    if(body.cadence) data.cadence = body.cadence
+    if(body.observation) data.observation = body.observation
+    if(body.load) data.load = parseFloat(body.load)
+
+    if(!data) {
+      return res.status(403).json({ message: "Dados ausente"})
+    }
+
+    const exercisesUpdated = await prisma.exercise.update({
+      where: {
+        id: exerciseId,
+        workoutId
+      },
+      data
+    })
+
+    return res.status(200).json({ message: "Exercício atualizado"})
+
+  }catch(error) {
+    console.log("INTERNAL_SERVER_ERROR", error)
+    return res.status(500).json({ message: error})
+  }
+})
+
 
 //removendo exercício passando wokroutId e ExerciseId pelos params
 routeExercise.delete("/exercise/:workoutId/:exerciseId", async (req: Request, res: Response) => {
