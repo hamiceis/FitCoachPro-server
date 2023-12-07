@@ -30,7 +30,7 @@ routeWorkout.get(
       const { studentId } = paramsSchema.parse(req.params);
       let result: Workout[];
 
-      const student = await getStudentWorkouts(studentId)
+      const student = await getStudentWorkouts(studentId);
 
       if (!student) {
         return res.status(400).json({
@@ -282,7 +282,9 @@ routeWorkout.patch(
       },
     });
 
-    const workout = student?.workouts.find((workout) => workout.id === workoutid)
+    const workout = student?.workouts.find(
+      (workout) => workout.id === workoutid
+    );
 
     try {
       if (!student) {
@@ -299,9 +301,9 @@ routeWorkout.patch(
 
       const exercise = await prisma.exercise.findFirst({
         where: {
-          workoutId: workout.id
-        }
-      })
+          workoutId: workout.id,
+        },
+      });
 
       if (!exercise) {
         return res.status(400).json({ message: "Exercise not found" });
@@ -401,6 +403,96 @@ routeWorkout.delete(
       return res.status(200).json({ message: "Workout deleted" });
     } catch (error) {
       console.log(`[INTERNAL_SERVER_ERROR_del_workout]`);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+
+//Cadastrar Workout e Exercise sem autenticação de professor, passando ID do Aluno
+routeWorkout.post(
+  "/workout/:studentId",
+
+  async (req: Request, res: Response) => {
+    const paramsSchema = z.object({
+      studentId: z.string().uuid(),
+    });
+
+    const bodySchema = z.object({
+      type: z.string(),
+      weekDay: z.number(),
+      dayMonth: z.date().optional(),
+      exerciseName: z.string(),
+      repetitions: z.string(),
+      interval: z.string(),
+      method: z.string().optional(),
+      load: z.string(),
+      cadence: z.string(),
+      observation: z.string().optional(),
+    });
+
+    const { studentId } = paramsSchema.parse(req.params);
+
+    const body = bodySchema.parse(req.body);
+
+    const student = await prisma.student.findUnique({
+      where: {
+        id: studentId,
+      },
+    });
+
+    try {
+      if (!student) {
+        return res.status(400).json({ message: "Estudante não encontrado" });
+      }
+
+      // Crie o objeto "data" que contém informações de Workout e Exercise
+      const data: WorkoutAndExerciseProps = {
+        Workout: {
+          type: body.type,
+          day_month: body.dayMonth || null,
+          week_day: body.weekDay,
+          studentId: student.id,
+        },
+        Exercise: {
+          name_exercise: body.exerciseName,
+          repetitions: body.repetitions,
+          interval: body.interval,
+          method: body.method || null,
+          load: parseFloat(body.load),
+          cadence: body.cadence,
+          observation: body.observation || "",
+        },
+      };
+
+      const workout = await prisma.workout.create({
+        data: {
+          type: data.Workout.type,
+          week_day: data.Workout.week_day,
+          day_month: data.Workout.day_month,
+          studentId: data.Workout.studentId,
+        },
+      });
+
+      const exercise = await prisma.exercise.create({
+        data: {
+          ...data.Exercise,
+          workout: {
+            connect: {
+              id: workout.id,
+            },
+          },
+        },
+      });
+
+      const result = {
+        workout,
+        exercise,
+      };
+
+      return res.status(200).json(result);
+    } catch (error) {
+      console.log("[INTERNAL_SERVER_ERROR_post_workout]", error);
       return res.status(500).json({ message: "Internal Server Error" });
     }
   }
