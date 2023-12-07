@@ -416,7 +416,6 @@ routeWorkout.delete(
 //Cadastrar Workout e Exercise sem autenticação de professor, passando ID do Aluno
 routeWorkout.post(
   "/workout/:studentId",
-
   async (req: Request, res: Response) => {
     const paramsSchema = z.object({
       studentId: z.string().uuid(),
