@@ -143,7 +143,7 @@ routeWorkout.post(
     const bodySchema = z.object({
       type: z.string(),
       weekDay: z.number(),
-      dayMonth: z.date().optional(),
+      dateMonth: z.string(),
       exerciseName: z.string(),
       repetitions: z.string(),
       interval: z.string(),
@@ -189,7 +189,7 @@ routeWorkout.post(
       const data: WorkoutAndExerciseProps = {
         Workout: {
           type: body.type,
-          day_month: body.dayMonth || null,
+          day_month: new Date(body.dateMonth) || null,
           week_day: body.weekDay,
           studentId: student.id,
         },
@@ -216,7 +216,11 @@ routeWorkout.post(
       const exercise = await prisma.exercise.create({
         data: {
           ...data.Exercise,
-          workoutId: workout.id,
+          workout: {
+            connect: {
+              id: workout.id
+            }
+          }
         },
       });
 
@@ -421,7 +425,7 @@ routeWorkout.post(
     const bodySchema = z.object({
       type: z.string(),
       weekDay: z.number(),
-      dayMonth: z.date().optional(),
+      dateMonth: z.string(),
       exerciseName: z.string(),
       repetitions: z.string(),
       interval: z.string(),
@@ -450,7 +454,7 @@ routeWorkout.post(
       const data: WorkoutAndExerciseProps = {
         Workout: {
           type: body.type,
-          day_month: body.dayMonth || null,
+          day_month: new Date(body.dateMonth) || null,
           week_day: body.weekDay,
           studentId: student.id,
         },
