@@ -412,7 +412,6 @@ routeWorkout.delete(
   }
 );
 
-
 //Cadastrar Workout e Exercise sem autenticação de professor, passando ID do Aluno
 routeWorkout.post(
   "/workout/:studentId",
@@ -496,6 +495,51 @@ routeWorkout.post(
       return res.status(200).json(result);
     } catch (error) {
       console.log("[INTERNAL_SERVER_ERROR_post_workout]", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+//Deletar Workout sem autenticação
+routeWorkout.delete(
+  "/workout/:studentId/:workoutId",
+  async (req: Request, res: Response) => {
+    const paramsSchema = z.object({
+      studentId: z.string().uuid(),
+      workoutId: z.string().uuid(),
+    });
+
+    const { studentId, workoutId } = paramsSchema.parse(req.params);
+
+    const student = await prisma.student.findUnique({
+      where: {
+        id: studentId,
+      },
+    });
+
+    try {
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+
+      const workout = await prisma.workout.findUnique({
+        where: {
+          id: workoutId,
+        }
+      });
+
+      if (!workout)
+        return res.status(400).json({ message: "Workout not found" });
+
+      await prisma.workout.delete({
+        where: {
+          id: workoutId,
+        },
+      });
+
+      return res.status(200).json({ message: "Treino deletado" });
+    } catch (error) {
+      console.log(`[INTERNAL_SERVER_ERROR_del_workout]`);
       return res.status(500).json({ message: "Internal Server Error" });
     }
   }
