@@ -30,15 +30,23 @@ routeWorkout.get(
       const { studentId } = paramsSchema.parse(req.params);
       let result: Workout[];
 
-      const student = await getStudentWorkouts(studentId);
+      // const student = await getStudentWorkouts(studentId);
+      const student = await prisma.student.findUnique({
+        where: {
+          id: studentId
+        },
+        include: {
+          workouts: true
+        }
+      })
 
       if (!student) {
         return res.status(400).json({
           message: "Aluno não encontrado",
         });
-      }
+      } 
 
-      result = student.workouts;
+      result = student.workouts
       return res.status(200).json(result);
     } catch (error) {
       console.log("[ERROR_ROUTE_workouts_student]", error);
