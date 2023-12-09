@@ -18,7 +18,7 @@ routeWorkout.get("/workouts", async (req: Request, res: Response) => {
   return res.json(workouts);
 });
 
-//Lista os treinos do aluno especifico ou seu proprio treino
+//Lista os treinos do aluno especifico pelo id do aluno
 routeWorkout.get(
   "/workouts/:studentId",
   async (req: Request, res: Response) => {
@@ -34,7 +34,7 @@ routeWorkout.get(
 
       if (!student) {
         return res.status(400).json({
-          message: "Esse aluno não está associado ao seu perfil de professor",
+          message: "Aluno não encontrado",
         });
       }
 
@@ -64,7 +64,7 @@ routeWorkout.get(
 
       if (user.role !== "user") {
         return res.status(401).json({
-          message: "Você não tem permissão para acessar os treinos de alunos.",
+          message: "Você não tem permissão para acessar os treinos dos alunos.",
         });
       }
 
