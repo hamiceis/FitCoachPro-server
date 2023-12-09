@@ -304,3 +304,35 @@ routeExercise.delete("/exercise/:workoutId/:exerciseId", async (req: Request, re
     }
 })
 
+
+//buscar todos os exercício de um Workout 
+routeExercise.get("/exercise/:workoutId", async (req: Request, res: Response) => {
+  //implementar a lógica se a pessoa tem permissão com o middleware authLogin
+
+  const paramsSchema = z.object({
+    workoutId: z.string().uuid()
+  })
+
+  const { workoutId } = paramsSchema.parse(req.params)
+  try {
+
+    const workouts = await prisma.workout.findUnique({
+      where: {
+        id: workoutId
+      }, 
+      include: {
+        exercises: true
+      }
+    })
+
+    if(!workouts) {
+    return res.status(404).json({ message: "Treino não cadastrado"})
+    }
+
+    return res.status(200).json(workouts.exercises)
+
+  }catch(error){
+    console.log("[INTERNAL_SERVER_ERROR_GET_EXERCISE_Workouts]", error)
+    return res.status(500).send("INTERNAL_SERVER_ERROR")
+  }
+})
