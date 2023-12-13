@@ -14,6 +14,35 @@ routeTeather.get("/teachers", async (req: Request, res: Response) => {
   return res.status(200).json(teacher)
 })
 
+//Consultar dados de um unico aluno pelo Id
+routeTeather.get("/teacher/:teacherId", async (req: Request, res: Response) => {
+  const paramsSchema = z.object({
+    teacherId: z.string().uuid()
+  })
+
+  const { teacherId } = paramsSchema.parse(req.params)
+  try {
+
+    const teacher = await prisma.professor.findUnique({
+      where: {
+        id: teacherId
+      }
+    })
+
+    if(!teacher) {
+      return res.status(401).json({ message: "Professor não encontrado"})
+    }
+
+    const { password, ...rest } = teacher
+
+    return res.status(200).json(rest)
+
+  } catch(error) {
+    console.log("INTERNAL_SERVER_ERROR_GET_TEACHER", error)
+    return res.status(500).json({ message: "INTERNAL SERVER ERROR"})
+  }
+})
+
 //Listar todos os teachers e students
 routeTeather.get("/teachers/students",  async (req: Request, res: Response) => {
   const teacher = await prisma.professor.findMany({

@@ -13,6 +13,35 @@ routeStudent.get("/students", async (req: Request, res: Response) => {
   return res.status(200).json(students);
 });
 
+//Buscar os dados de um único student pelo Id
+routeStudent.get("/student/:studentId", async (req: Request, res: Response) => {
+  const paramsSchema = z.object({
+    studentId: z.string().uuid(),
+  });
+
+  const { studentId } = paramsSchema.parse(req.params);
+  try {
+    const student = await prisma.student.findUnique({
+      where: {
+        id: studentId,
+      },
+    });
+
+    if (!student) {
+      return res
+        .status(401)
+        .json({ message: "Aluno não encontrado ou não existe" });
+    }
+
+    const { password, ...rest } = student;
+
+    return res.status(200).json(rest);
+  } catch (error) {
+    console.log("[INTERNAL_SERVER_ERROR_GET_STUDENT]", error);
+    return res.status(500).json({ message: "INTERNAL SERVER ERROR" });
+  }
+});
+
 //Buscar dados de um unico aluno que esteja na lista do professor
 routeStudent.get(
   "/students/:studentId",
