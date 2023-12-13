@@ -10,6 +10,7 @@ export function authLogin(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ message: "Not authenticated "})
   }
 
+  //pode usar esses cookies para fazer algum tipo de lógica
   const deserializedUser: DeserializerUser = JSON.parse(authToken);
   next()
 }

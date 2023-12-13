@@ -456,7 +456,7 @@ routeWorkout.post(
         return res.status(400).json({ message: "Estudante não encontrado" });
       }
 
-      // Crie o objeto "data" que contém informações de Workout e Exercise
+      // Cria o objeto "data" que contém informações de Workout e Exercise
       const data: WorkoutAndExerciseProps = {
         Workout: {
           type: body.type,

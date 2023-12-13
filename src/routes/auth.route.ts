@@ -17,7 +17,7 @@ route.post("/login", async (req: Request, res: Response) => {
     const { email, password } = bodySchema.parse(req.body);
 
     if (!email || !password) {
-      return res.status(401).json({ message: "Email ou passoword invalidos" });
+      return res.status(401).json({ message: "Os campos precisam ser todos preenchidos" });
     }
 
     const isExistEmail = await isEmailAlreadyRegistered(email)

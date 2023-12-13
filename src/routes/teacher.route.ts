@@ -304,3 +304,54 @@ routeTeather.patch("/teacher/student/:studentId", authLogin, async (req: Request
     res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER_Student" });
   }
 })
+
+//Atualizar dados pessoais de teacher sem autenticação
+routeTeather.put("/teacher/:teacherId", async (req: Request, res: Response) => {
+  const paramsSchema = z.object({
+    teacherId: z.string().uuid()
+  })
+
+  //implementar a lógica pegando a senha antiga e confirmando antes de fazer alteração para nova
+  const bodySchema = z.object({
+    name: z.string().optional(),
+    email: z.string().email().optional(),
+    password: z.string().optional(),
+    cref: z.string().optional()
+  });
+
+  try {
+    const { teacherId } = paramsSchema.parse(req.params)
+    const body = bodySchema.parse(req.body);
+
+    const teacher = await prisma.professor.findUnique({
+      where: {
+        id: teacherId
+      }
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Professor não encontrado" });
+    }
+
+    const hashedPassword = body.password ? await bcrypt.hash(body.password, 10) : null;
+
+    const data: any = {};
+
+    if (body.name) data.name = body.name;
+    if (body.email) data.email = body.email;
+    if (hashedPassword) data.password = hashedPassword;
+    if (body.cref) data.cref = body.cref;
+
+    const updatedTeacher = await prisma.professor.update({
+      where: {
+        id: teacherId
+      },
+      data: data
+    });
+
+    return res.status(200).json(updatedTeacher);
+  } catch (error) {
+    console.error("[INTERNAL_SERVER_ERROR]", error);
+    res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER" });
+  }
+});
