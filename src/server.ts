@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 
 import { route } from "./routes/auth.route";
 import { routeStudent } from "./routes/student.route";
-import { routeTeather } from "./routes/teacher.route";
+import { routeTeacher } from "./routes/teacher.route";
 import { routeWorkout } from "./routes/workout.route";
 import { routeExercise } from "./routes/exercise.route";
 
@@ -18,7 +18,7 @@ app.use(cookieParser())
 
 app.use(route)
 app.use(routeStudent)
-app.use(routeTeather)
+app.use(routeTeacher)
 app.use(routeWorkout)
 app.use(routeExercise)
 

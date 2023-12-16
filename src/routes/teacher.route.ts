@@ -6,16 +6,16 @@ import bcrypt from "bcrypt"
 import { authLogin } from "../middlewares/auth.middleware";
 import { DeserializerUser } from "../@types/types";
 
-export const routeTeather = Router();
+export const routeTeacher = Router();
 
 //Listar todos os teachers
-routeTeather.get("/teachers", async (req: Request, res: Response) => {
+routeTeacher.get("/teachers", async (req: Request, res: Response) => {
   const teacher = await prisma.professor.findMany()
   return res.status(200).json(teacher)
 })
 
 //Consultar dados de um unico aluno pelo Id
-routeTeather.get("/teacher/:teacherId", async (req: Request, res: Response) => {
+routeTeacher.get("/teacher/:teacherId", async (req: Request, res: Response) => {
   const paramsSchema = z.object({
     teacherId: z.string().uuid()
   })
@@ -44,7 +44,7 @@ routeTeather.get("/teacher/:teacherId", async (req: Request, res: Response) => {
 })
 
 //Listar todos os teachers e students
-routeTeather.get("/teachers/students",  async (req: Request, res: Response) => {
+routeTeacher.get("/teachers/students",  async (req: Request, res: Response) => {
   const teacher = await prisma.professor.findMany({
     include: {
       students: true,
@@ -54,7 +54,7 @@ routeTeather.get("/teachers/students",  async (req: Request, res: Response) => {
 })
 
 //Listar todos os alunos de apenas um único teacher
-routeTeather.get("/teacher/students", authLogin, async (req: Request, res: Response) => {
+routeTeacher.get("/teacher/students", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
 
@@ -90,7 +90,7 @@ routeTeather.get("/teacher/students", authLogin, async (req: Request, res: Respo
 })
 
 //Remove um aluno da lista do teacher
-routeTeather.delete("/teacher/students/:studentId", authLogin, async (req: Request, res: Response) => {
+routeTeacher.delete("/teacher/students/:studentId", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
   const studentId = req.params.studentId
@@ -138,7 +138,7 @@ routeTeather.delete("/teacher/students/:studentId", authLogin, async (req: Reque
 })
 
 //Atualizar seus dados de teacher
-routeTeather.put("/teacher", authLogin, async (req: Request, res: Response) => {
+routeTeacher.put("/teacher", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken;
   const user: DeserializerUser = JSON.parse(authToken);
   const bodySchema = z.object({
@@ -189,7 +189,7 @@ routeTeather.put("/teacher", authLogin, async (req: Request, res: Response) => {
 });
 
 //Teacher adiciona aluno a sua lista de students
-routeTeather.post("/teacher/students", authLogin, async (req: Request, res: Response) => {
+routeTeacher.post("/teacher/students", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
 
@@ -264,7 +264,7 @@ routeTeather.post("/teacher/students", authLogin, async (req: Request, res: Resp
 })
 
 //Teacher adiciona informações adicionais aos dados do student
-routeTeather.patch("/teacher/student/:studentId", authLogin, async (req: Request, res: Response) => {
+routeTeacher.patch("/teacher/student/:studentId", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
   const studentId = req.params.studentId
@@ -335,7 +335,7 @@ routeTeather.patch("/teacher/student/:studentId", authLogin, async (req: Request
 })
 
 //Atualizar dados pessoais de teacher sem autenticação
-routeTeather.put("/teacher/:teacherId", async (req: Request, res: Response) => {
+routeTeacher.put("/teacher/:teacherId", async (req: Request, res: Response) => {
   const paramsSchema = z.object({
     teacherId: z.string().uuid()
   })
@@ -364,7 +364,7 @@ routeTeather.put("/teacher/:teacherId", async (req: Request, res: Response) => {
 
     const hashedPassword = body.password ? await bcrypt.hash(body.password, 10) : null;
 
-    const data: any = {};
+    const data: Record<string, any> = {};
 
     if (body.name) data.name = body.name;
     if (body.email) data.email = body.email;
@@ -382,5 +382,63 @@ routeTeather.put("/teacher/:teacherId", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("[INTERNAL_SERVER_ERROR]", error);
     res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER" });
+  }
+});
+
+//Atualizando dados do teacher com a senha anterior 
+routeTeacher.patch("/teacher/:teacherId", async (req: Request, res: Response) => {
+  const paramsSchema = z.object({
+    teacherId: z.string().uuid()
+  });
+
+  const bodySchema = z.object({
+    name: z.string().optional(),
+    email: z.string().email().optional(),
+    password: z.string().optional(),
+    oldPassword: z.string().optional(),
+    cref: z.string().optional()
+  });
+
+  try {
+    const { teacherId } = paramsSchema.parse(req.params);
+    const body = bodySchema.parse(req.body);
+
+    const teacher = await prisma.professor.findUnique({
+      where: {
+        id: teacherId
+      }
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Professor não encontrado" });
+    }
+
+    if (body.oldPassword) {
+      const passwordMatch = await bcrypt.compare(body.oldPassword, teacher.password || '');
+      if (!passwordMatch) {
+        return res.status(400).json({ message: "Senha antiga incorreta" });
+      }
+    }
+
+    const hashedPassword = body.password ? await bcrypt.hash(body.password, 10) : null;
+
+    const updateData: Partial<Record<keyof typeof body, any>> = {};
+
+    if (body.name) updateData.name = body.name;
+    if (body.email) updateData.email = body.email;
+    if (hashedPassword) updateData.password = hashedPassword;
+    if (body.cref) updateData.cref = body.cref;
+
+    const updatedTeacher = await prisma.professor.update({
+      where: {
+        id: teacherId
+      },
+      data: updateData
+    });
+
+    return res.status(200).json(updatedTeacher);
+  } catch (error) {
+    console.error("[INTERNAL_SERVER_ERROR]", error);
+    return res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER" });
   }
 });
