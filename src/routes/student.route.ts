@@ -222,7 +222,6 @@ routeStudent.put("/student", authLogin, async (req: Request, res: Response) => {
   }
 });
 
-
 //Atualiza os dados sem autenticação
 routeStudent.put("/student/:studentId", async (req: Request, res: Response) => {
   const paramsSchema = z.object({
@@ -232,6 +231,7 @@ routeStudent.put("/student/:studentId", async (req: Request, res: Response) => {
   const bodySchema = z.object({
     name: z.string().optional(),
     email: z.string().email().optional(),
+    tel: z.string().optional(),
     password: z.string().optional(),
     age: z.number().optional(),
     gender: z.string().optional(),
@@ -257,6 +257,7 @@ routeStudent.put("/student/:studentId", async (req: Request, res: Response) => {
     const data = {} as {
       name?: string;
       email?: string;
+      tel?: string;
       gender?: string;
       height?: number;
       age?: number;
@@ -265,7 +266,8 @@ routeStudent.put("/student/:studentId", async (req: Request, res: Response) => {
     };
 
     if (body.name) data.name = body.name;
-    if (body.email) data.email = body.email;
+    if (body.email) data.email = body.email; 
+    if (body.tel) data.tel = body.tel; 
     if (body.gender) data.gender = body.gender;
     if (body.height) data.height = body.height;
     if (body.age) data.age = body.age;
@@ -289,79 +291,81 @@ routeStudent.put("/student/:studentId", async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
-
 
 //Atualizar dados de student sem autenticação com a senha anterior
-routeStudent.patch("/student/:studentId", async (req: Request, res: Response) => {
-  const paramsSchema = z.object({
-    studentId: z.string().uuid(),
-  });
-
-  const bodySchema = z.object({
-    name: z.string().optional(),
-    email: z.string().email().optional(),
-    oldPassword: z.string().optional(),
-    password: z.string().optional(),
-    age: z.number().optional(),
-    gender: z.string().optional(),
-    height: z.number().optional(),
-  });
-
-  try {
-    const { studentId } = paramsSchema.parse(req.params);
-    const body = bodySchema.parse(req.body);
-
-    const student = await prisma.student.findUnique({
-      where: {
-        id: studentId,
-      },
+routeStudent.patch(
+  "/student/:studentId",
+  async (req: Request, res: Response) => {
+    const paramsSchema = z.object({
+      studentId: z.string().uuid(),
     });
 
-    if (!student) {
-      return res.status(404).json({ message: "Estudante não encontrado" });
-    }
+    const bodySchema = z.object({
+      name: z.string().optional(),
+      email: z.string().email().optional(),
+      tel: z.string().optional(),
+      oldPassword: z.string().optional(),
+      password: z.string().optional(),
+      age: z.number().optional(),
+      gender: z.string().optional(),
+      height: z.number().optional(),
+    });
 
-    if(body.oldPassword) {
-      const passwordMatch = await bcrypt.compare(body.oldPassword, student.password || "")
-      if(!passwordMatch) {
-        return res.status(400).json({ message: "Senha incorreta"})
+    try {
+      const { studentId } = paramsSchema.parse(req.params);
+      const body = bodySchema.parse(req.body);
+
+      const student = await prisma.student.findUnique({
+        where: {
+          id: studentId,
+        },
+      });
+
+      if (!student) {
+        return res.status(404).json({ message: "Estudante não encontrado" });
       }
+
+      if (body.oldPassword) {
+        const passwordMatch = await bcrypt.compare(
+          body.oldPassword,
+          student.password || ""
+        );
+        if (!passwordMatch) {
+          return res.status(400).json({ message: "Senha incorreta" });
+        }
+      }
+
+      const hashedPassword = body.password
+        ? await bcrypt.hash(body.password, 10)
+        : null;
+
+      const data: Record<string, any> = {};
+
+      if (body.name) data.name = body.name;
+      if (body.email) data.email = body.email;
+      if (body.tel) data.tel = body.tel;
+      if (body.gender) data.gender = body.gender;
+      if (body.height) data.height = body.height;
+      if (body.age) data.age = body.age;
+      if (hashedPassword) data.password = hashedPassword;
+
+      const updatedStudent = await prisma.student.update({
+        where: {
+          id: studentId,
+        },
+        data: data,
+      });
+
+      return res.status(200).json({ updatedStudent });
+    } catch (error) {
+      console.error("[INTERNAL_SERVER_ERROR] - [PUT - /student]", error);
+
+      if (error instanceof z.ZodError) {
+        return res
+          .status(400)
+          .json({ message: "Erro de validação", details: error.errors });
+      }
+      return res.status(500).json({ message: "Erro interno do servidor" });
     }
-
-    const hashedPassword = body.password ? await bcrypt.hash(body.password, 10): null;
-
-    const data = {} as {
-      name?: string;
-      email?: string;
-      gender?: string;
-      height?: number;
-      age?: number;
-      password?: string;
-      [key: string]: string | number | undefined;
-    };
-
-    if (body.name) data.name = body.name;
-    if (body.email) data.email = body.email;
-    if (body.gender) data.gender = body.gender;
-    if (body.height) data.height = body.height;
-    if (body.age) data.age = body.age;
-    if (hashedPassword) data.password = hashedPassword;
-
-    const updatedStudent = await prisma.student.update({
-      where: {
-        id: studentId,
-      },
-      data: data,
-    });
-
-    return res.status(200).json({ updatedStudent });
-  } catch (error) {
-    console.error("[INTERNAL_SERVER_ERROR] - [PUT - /student]", error);
-
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Erro de validação", details: error.errors });
-    }
-
-    return res.status(500).json({ message: "Erro interno do servidor" });
   }
-});
+);
