@@ -369,3 +369,75 @@ routeStudent.patch(
     }
   }
 );
+
+
+//Aluno se associar a um teacher sem autenticação informando o email do teacher
+routeStudent.post(
+  "/student/connect/:studentId",
+  async (req: Request, res: Response) => {
+
+    const connectSchema = z.object({
+      email: z.string().email(),
+    });
+
+    const paramsSchema = z.object({
+      studentId: z.string().uuid()
+    })
+
+    try {
+      const professor = connectSchema.parse(req.body);
+      const { studentId } = paramsSchema.parse(req.params)
+
+      if (!professor) {
+        return res.status(400).send("Email invalído");
+      }
+
+      const teacher = await prisma.professor.findUnique({
+        where: {
+          email: professor.email,
+        },
+      });
+
+      if (!teacher) {
+        return res.status(404).json({ message: "Professor não encontrado" });
+      }
+
+      const student = await prisma.student.findUnique({
+        where: {
+          id: studentId,
+        }
+      });
+
+      if (!student) {
+        return res.status(404).json({ message: "Aluno não encontrado" });
+      }
+
+      if (student.professorId) {
+        return res
+          .status(400)
+          .json({ message: "O aluno já está associado a um professor" });
+      }
+
+      await prisma.student.update({
+        where: {
+          id: student.id,
+        },
+        data: {
+          professor: {
+            connect: {
+              id: teacher.id,
+            },
+          },
+        },
+      });
+
+      return res
+        .status(200)
+        .json({ message: "Aluno associado ao professor com sucesso" });
+    } catch (error) {
+      console.error("Erro ao associar aluno ao professor:", error);
+      return res.status(500).send("Erro interno do servidor");
+    }
+  }
+);
+

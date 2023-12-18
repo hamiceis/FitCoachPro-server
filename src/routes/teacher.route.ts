@@ -189,7 +189,7 @@ routeTeacher.put("/teacher", authLogin, async (req: Request, res: Response) => {
 });
 
 //Teacher adiciona aluno a sua lista de students
-routeTeacher.post("/teacher/students", authLogin, async (req: Request, res: Response) => {
+routeTeacher.post("/teacher/connect", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
 
@@ -442,3 +442,62 @@ routeTeacher.patch("/teacher/:teacherId", async (req: Request, res: Response) =>
     return res.status(500).json({ message: "INTERNAL_SERVER_ERROR_PUT_TEACHER" });
   }
 });
+
+//Professor adiciona aluno a sua lista de alunos sem Autenticação
+routeTeacher.post("/teacher/connect/:teacherId", async (req: Request, res: Response) => {
+  const bodySchema = z.object({
+    email: z.string().email()
+  })
+  const paramsSchema = z.object({
+    teacherId: z.string().uuid()
+  })
+
+  const { email } = bodySchema.parse(req.body)
+  const { teacherId } = paramsSchema.parse(req.params)
+
+  const teacher = await prisma.professor.findUnique({
+    where: {
+      id: teacherId
+    }
+  })
+
+  const student = await prisma.student.findUnique({
+    where: {
+      email
+    }
+  })
+
+  try {
+    if(!teacher) {
+      return res.status(400).json({ message: "Professor não encontrado"})
+    }
+
+    if(!student) {
+      return res.status(400).json({ message: "Aluno não existe"})
+    }
+
+    if(student.professorId) {
+      return res.status(400).json({ message: "Aluno já associado a um professor"})
+    }
+
+
+   await prisma.professor.update({
+      where: {
+        id: teacherId
+      },
+      data: {
+        students: {
+          connect: {
+            id: student.id
+          }
+        }
+      }
+    })
+
+    return res.status(200).json({ message: `Aluno ${student.name} cadastrado com sucesso a sua lista`})
+
+  } catch (error) {
+    console.log("[INTERNAL_SERVER_ERROR_teacher_post]", error)
+    return res.status(500).json({ message: "Internal Server Error"})
+  }
+})
