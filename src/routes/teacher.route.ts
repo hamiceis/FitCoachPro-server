@@ -494,10 +494,63 @@ routeTeacher.post("/teacher/connect/:teacherId", async (req: Request, res: Respo
       }
     })
 
-    return res.status(200).json({ message: `Aluno ${student.name} cadastrado com sucesso a sua lista`})
+    const [name] = student.name.split(" ")
+
+    return res.status(200).json({ message: `Aluno(a) ${name} cadastrado(a) com sucesso a sua lista`})
 
   } catch (error) {
     console.log("[INTERNAL_SERVER_ERROR_teacher_post]", error)
     return res.status(500).json({ message: "Internal Server Error"})
+  }
+})
+
+//Teacher remove aluno da sua lista 
+routeTeacher.delete("/teacher/desconnect", async (req: Request, res: Response) => {
+  const querySchema = z.object({
+    studentId: z.string().uuid(),
+    teacherId: z.string().uuid()
+  })
+
+  try {
+    const { studentId, teacherId} = querySchema.parse(req.query)
+
+    if(!studentId && !teacherId) {
+      return res.status(404).json({ message: "Erro na requisição"})
+    }
+
+    const student = await prisma.student.findUnique({
+      where: {
+        id: studentId
+      }
+    })
+    const teacher = await prisma.professor.findUnique({
+      where: {
+        id: teacherId
+      }
+    })
+
+    if(!student || !teacher) {
+      return res.status(401).json({ message: "Aluno ou professor não encontrado"})
+    }
+    
+    if(student.professorId !== teacher.id) {
+      return res.status(404).json({ message: "Professor não tem autorização para remover esse aluno"})
+    }
+
+    await prisma.student.update({
+      where: {
+        id: student.id
+      },
+      data: {
+        professor: {
+          disconnect: true, 
+        },
+      },
+    });
+
+    res.status(200).json({ message: "Aluno removido da lista do professor com sucesso" });
+  } catch (error) {
+    console.log("INTERNAL_SERVER_ERROR", error)
+    return res.status(500).json({ message: "INTERNAL SERVER ERROR"})
   }
 })
