@@ -12,7 +12,10 @@ import { routeExercise } from "./routes/exercise.route";
 const app = express();
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  //Credentials como true, permite que as requisições sejá compartilhado cookies entre outras informações
+  credentials: true,
+}))
 
 app.use(cookieParser())
 
