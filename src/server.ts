@@ -12,8 +12,11 @@ import { routeExercise } from "./routes/exercise.route";
 const app = express();
 
 app.use(express.json())
+
+//origin determina qual dominio pode ter acesso as requisições http
+//Credentials como true, permite que as requisições sejá compartilhado cookies entre outras informações no headers
 app.use(cors({
-  //Credentials como true, permite que as requisições sejá compartilhado cookies entre outras informações
+  origin: "http://localhost:5173",
   credentials: true,
 }))
 
@@ -26,7 +29,7 @@ app.use(routeWorkout)
 app.use(routeExercise)
 
 app.get("/", (req, res) => {
-  res.send("Hello")
+  res.send("Hello world")
 })
 
 app.listen(3000, () => {
