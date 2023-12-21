@@ -48,7 +48,10 @@ route.post("/login", async (req: Request, res: Response) => {
     const serializedUser = JSON.stringify(userCookie); // Converta os dados do usuário em uma string
 
     res.cookie("authToken", serializedUser, cookieOptions);
-    return res.status(200).json({ message: "Login success" });
+    return res.status(200).json({ 
+      message: "Login success",
+      token: serializedUser
+    });
   } catch (error) {
     res.status(500).send("Internal Server Error");
     throw new Error("Internal Server Error[/login]");
