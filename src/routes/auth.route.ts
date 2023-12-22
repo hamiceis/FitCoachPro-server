@@ -41,8 +41,9 @@ route.post("/login", async (req: Request, res: Response) => {
     };
 
     const cookieOptions = {
-      httpOnly: true, // Isso impede que o cookie seja acessível via JavaScript no navegador
+   // httpOnly: true, // Isso impede que o cookie seja acessível via JavaScript
       maxAge: 3600000, // Tempo de vida do cookie em milissegundos (1 hora neste exemplo)
+   // secure: "/"      //indica que todas as todas tem acesso
     };
 
     const serializedUser = JSON.stringify(userCookie); // Converta os dados do usuário em uma string
