@@ -14,8 +14,18 @@ routeTeacher.get("/teachers", async (req: Request, res: Response) => {
   return res.status(200).json(teacher)
 })
 
-//Consultar dados de um unico aluno pelo Id
-routeTeacher.get("/teacher/:teacherId", async (req: Request, res: Response) => {
+//Listar todos os teachers e students
+routeTeacher.get("/teachers/students",  async (req: Request, res: Response) => {
+  const teacher = await prisma.professor.findMany({
+    include: {
+      students: true,
+    }
+  })
+  return res.status(200).json(teacher)
+})
+
+//Consultar dados de um unico professor pelo Id
+routeTeacher.get("/teachers/:teacherId", async (req: Request, res: Response) => {
   const paramsSchema = z.object({
     teacherId: z.string().uuid()
   })
@@ -43,21 +53,12 @@ routeTeacher.get("/teacher/:teacherId", async (req: Request, res: Response) => {
   }
 })
 
-//Listar todos os teachers e students
-routeTeacher.get("/teachers/students",  async (req: Request, res: Response) => {
-  const teacher = await prisma.professor.findMany({
-    include: {
-      students: true,
-    }
-  })
-  return res.status(200).json(teacher)
-})
 
 //Listar todos os alunos de apenas um único teacher
 routeTeacher.get("/teacher/students", authLogin, async (req: Request, res: Response) => {
   const authToken = req.cookies.authToken
   const user: DeserializerUser = JSON.parse(authToken)
-
+  
   const teacher = await prisma.professor.findUnique({
     where: {
       id: user.id
