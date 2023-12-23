@@ -50,8 +50,7 @@ route.post("/login", async (req: Request, res: Response) => {
 
     res.cookie("authToken", serializedUser, cookieOptions);
     return res.status(200).json({ 
-      message: "Login success",
-      token: serializedUser
+      message: "Login success"
     });
   } catch (error) {
     res.status(500).send("Internal Server Error");
