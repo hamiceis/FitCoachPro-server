@@ -28,7 +28,7 @@ app.use(routeWorkout)
 app.use(routeExercise)
 
 app.get("/", (req, res) => {
-  res.send("Hello world")
+  res.status(200).send("Aplicação rodando com sucesso")
 })
 
 app.listen(3000, () => {
